@@ -28,9 +28,11 @@ class TelegramWebhookParser extends AbstractRequestParser
     protected function doParse(Request $request, string $secret): ?TaskStatusTransitionEvent
     {
         try {
-            $callbackData = json_decode($request->toArray()['callback_query']['data'], true);
+            $callback = $request->toArray()['callback_query'];
+            $callbackData = json_decode($callback['data'], true);
+            $messageId = $callback['message']['message_id'];
 
-            return new TaskStatusTransitionEvent($callbackData['id'], $callbackData['transition']);
+            return new TaskStatusTransitionEvent($messageId, $callbackData['id'], $callbackData['transition']);
         } catch(Throwable) {
             throw new RejectWebhookException(Response::HTTP_NOT_ACCEPTABLE, 'Invalid payload');
         }
