@@ -7,6 +7,7 @@ use Symfony\Component\RemoteEvent\RemoteEvent;
 class TaskStatusTransitionEvent extends RemoteEvent
 {
     public function __construct(
+        public readonly int $messageId,
         public readonly int $taskId,
         public readonly string $transition
     ) {

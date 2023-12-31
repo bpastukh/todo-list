@@ -7,6 +7,9 @@ use App\Repository\TaskRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
+use Symfony\Component\Notifier\Bridge\Telegram\TelegramOptions;
+use Symfony\Component\Notifier\ChatterInterface;
+use Symfony\Component\Notifier\Message\ChatMessage;
 use Symfony\Component\RemoteEvent\Attribute\AsRemoteEventConsumer;
 use Symfony\Component\RemoteEvent\Consumer\ConsumerInterface;
 use Symfony\Component\RemoteEvent\RemoteEvent;
@@ -20,6 +23,7 @@ class TaskStatusTransitionEventConsumer implements ConsumerInterface
         private EntityManagerInterface $em,
         private LoggerInterface $logger,
         private WorkflowInterface $taskStateMachine,
+        private ChatterInterface $chatter,
     ) {
     }
 
@@ -33,7 +37,7 @@ class TaskStatusTransitionEventConsumer implements ConsumerInterface
 
         if (!$this->taskStateMachine->can($task, $event->transition)) {
             $this->logger->error(
-                'Status transition is not allowe',
+                'Status transition is not allowed',
                 [
                     'id' => $event->taskId,
                     'transition' => $event->transition,
@@ -45,5 +49,11 @@ class TaskStatusTransitionEventConsumer implements ConsumerInterface
 
         $this->taskStateMachine->apply($task, $event->transition);
         $this->em->flush();
+
+        $telegramOptions = (new TelegramOptions())
+        ->edit($event->messageId);
+        $message = new ChatMessage("{$task->getTitle()} - {$task->getStatusAsString()}", $telegramOptions);
+
+        $this->chatter->send($message);
     }
 }
